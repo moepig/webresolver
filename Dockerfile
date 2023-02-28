@@ -16,7 +16,7 @@ WORKDIR /
 
 COPY --from=build /app /app
 
-EXPOSE 8080
+EXPOSE 80
 USER nonroot:nonroot
 
 ENTRYPOINT ["/app"]
