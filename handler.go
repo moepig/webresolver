@@ -15,13 +15,13 @@ func resolveHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintln(w, "Resolve Error")
+		fmt.Fprint(w, "Resolve Error")
 		return
 	}
 
 	if addr == nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintln(w, "Unknown Error")
+		fmt.Fprint(w, "Unknown Error")
 		return
 	}
 
