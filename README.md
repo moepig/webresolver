@@ -1,2 +1,4 @@
 # webresolver
-An application that can check the name resolution results of the application execution environment.
+リクエストで与えられたホスト名の名前解決を行う HTTP サーバです。
+
+PaaS サービスなどでコンテナ上で起動するシェルを触ることが出来ず、ネットワーク関連の動作検証が行えない場合を想定した実装です。
