@@ -11,16 +11,27 @@ import (
 
 func ipRestrictMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		requestIpStr, _, err := net.SplitHostPort(r.RemoteAddr)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintln(w, "Parse Error")
+			fmt.Fprintln(w, "IP Parse Error")
 			log.Printf("ip: %s, block", r.RemoteAddr)
 			return
 		}
 
-		if !isAllowedIp(ip) {
+		requestIp := net.ParseIP(requestIpStr)
+
+		if requestIp == nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintln(w, "IP Parse Error")
+			log.Printf("ip: %s, block", r.RemoteAddr)
+			return
+		}
+
+		whitelist := loadAllowIpList()
+
+		if !isAllowedIp(requestIp, whitelist) {
 			w.WriteHeader(http.StatusForbidden)
 			fmt.Fprintln(w, "Fobidden")
 			log.Printf("ip: %s, block", r.RemoteAddr)
@@ -32,24 +43,33 @@ func ipRestrictMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
-func isAllowedIp(ip string) bool {
-	envIpRanges := os.Getenv("ALLOW_IP_RANGES")
-	targetIp := net.ParseIP(ip)
-
-	if envIpRanges == "" {
-		return false
+func isAllowedIp(ip net.IP, allowRanges []*net.IPNet) bool {
+	for _, ipNet := range allowRanges {
+		if ipNet.Contains(ip) {
+			return true
+		}
 	}
 
+	return false
+}
+
+func loadAllowIpList() []*net.IPNet {
+	envIpRanges := os.Getenv("ALLOW_IP_RANGES")
+
+	var ipRanges []*net.IPNet
+
 	for _, ipCidr := range strings.Split(envIpRanges, ",") {
+		ipCidr = strings.TrimSpace(ipCidr)
 		_, cidrNet, err := net.ParseCIDR(ipCidr)
 
 		if err != nil {
 			log.Println(err)
-			return false
+			log.Printf("invalid string: %s", ipCidr)
+			continue
 		}
 
-		return cidrNet.Contains(targetIp)
+		ipRanges = append(ipRanges, cidrNet)
 	}
 
-	return false
+	return ipRanges
 }
